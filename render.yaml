@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: couples-therapy-backend
+    env: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && gunicorn server:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PARTNER_MODEL
+        value: gpt-3.5-turbo
+      - key: THERAPIST_MODEL
+        value: gpt-4
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8000
+      - key: DEBUG
+        value: false 
