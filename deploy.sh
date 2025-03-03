@@ -11,7 +11,13 @@ sudo apt-get upgrade -y
 
 # Install Python and required system packages
 echo "Installing required packages..."
-sudo apt-get install -y python3-pip python3-venv nginx supervisor
+sudo apt-get install -y python3-pip python3-venv nginx supervisor ufw
+
+# Configure firewall
+echo "Configuring firewall..."
+sudo ufw allow 80/tcp
+sudo ufw allow 22/tcp
+sudo ufw --force enable
 
 # Create application directory
 echo "Setting up application directory..."
@@ -39,6 +45,7 @@ autostart=true
 autorestart=true
 stderr_logfile=/var/log/couples-therapy/err.log
 stdout_logfile=/var/log/couples-therapy/out.log
+environment=PATH="/var/www/couples-therapy/venv/bin"
 EOF
 
 # Create log directory
@@ -50,8 +57,11 @@ sudo chown -R $USER:$USER /var/log/couples-therapy
 echo "Configuring nginx..."
 sudo tee /etc/nginx/sites-available/couples-therapy << EOF
 server {
-    listen 80;
+    listen 80 default_server;
     server_name 146.190.123.233;
+
+    access_log /var/log/nginx/couples-therapy-access.log;
+    error_log /var/log/nginx/couples-therapy-error.log;
 
     location / {
         root /var/www/couples-therapy/frontend;
@@ -65,6 +75,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 90;
     }
 }
 EOF
@@ -78,15 +89,35 @@ sudo rm -f /etc/nginx/sites-enabled/default
 echo "Testing nginx configuration..."
 sudo nginx -t
 
-# Restart services
-echo "Restarting services..."
-sudo systemctl restart supervisor
-sudo systemctl restart nginx
+# Ensure services are enabled
+echo "Enabling services..."
+sudo systemctl enable nginx
+sudo systemctl enable supervisor
+
+# Stop services before restarting
+echo "Stopping services..."
+sudo systemctl stop nginx
+sudo systemctl stop supervisor
+
+# Start services fresh
+echo "Starting services..."
+sudo systemctl start supervisor
+sudo systemctl start nginx
 
 # Check services status
 echo "Checking services status..."
+echo "Nginx status:"
 sudo systemctl status nginx --no-pager
+echo "Supervisor status:"
 sudo systemctl status supervisor --no-pager
+echo "Application status:"
 sudo supervisorctl status couples-therapy
 
-echo "Deployment complete! The application should be running at http://146.190.123.233" 
+# Verify ports are listening
+echo "Checking listening ports..."
+sudo netstat -tulpn | grep -E ':80|:8000'
+
+echo "Deployment complete! The application should be running at http://146.190.123.233"
+echo "To check logs:"
+echo "  Nginx error log: sudo tail -f /var/log/nginx/couples-therapy-error.log"
+echo "  Application log: tail -f /var/log/couples-therapy/err.log" 
