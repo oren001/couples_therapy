@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couples Therapy API Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #e0f2fe, #e0e7ff);
+            min-height: 100vh;
+        }
+        .error-message {
+            color: #b91c1c;
+            background-color: #fee2e2;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        .debug-panel {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 2rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .result { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="max-w-6xl mx-auto p-8">
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-indigo-900 text-center">Couples Therapy Assistant</h1>
+            <p class="text-center mt-2 text-gray-600">Simple API Test Interface</p>
+            <div class="mt-4 text-center">
+                <span id="apiStatus" class="px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
+                    Checking API Status...
+                </span>
+            </div>
+        </header>
+
+        <div class="grid md:grid-cols-2 gap-8 mb-16">
+            <!-- Partner 1 -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-indigo-800 mb-4">Partner 1</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Message:</label>
+                    <textarea 
+                        id="partner1Message" 
+                        class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        rows="5"
+                        placeholder="Express your thoughts and feelings here..."
+                    ></textarea>
+                </div>
+                <button 
+                    id="partner1Submit"
+                    class="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                    Get Suggestions
+                </button>
+                <div id="partner1Error" class="error-message hidden"></div>
+                
+                <div id="partner1Response" class="mt-6 hidden">
+                    <h3 class="text-lg font-medium mb-2">Suggested Improvement:</h3>
+                    <div class="p-5 bg-indigo-50 rounded-lg mb-4 text-gray-800" id="partner1ResponseText"></div>
+                    <button 
+                        id="partner1Approve"
+                        class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors"
+                    >
+                        Approve & Send to Therapist
+                    </button>
+                </div>
+            </div>
+
+            <!-- Partner 2 -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-indigo-800 mb-4">Partner 2</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Message:</label>
+                    <textarea 
+                        id="partner2Message" 
+                        class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        rows="5"
+                        placeholder="Express your thoughts and feelings here..."
+                    ></textarea>
+                </div>
+                <button 
+                    id="partner2Submit"
+                    class="bg-indigo-600 text-white py-2 px-6 rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                    Get Suggestions
+                </button>
+                <div id="partner2Error" class="error-message hidden"></div>
+                
+                <div id="partner2Response" class="mt-6 hidden">
+                    <h3 class="text-lg font-medium mb-2">Suggested Improvement:</h3>
+                    <div class="p-5 bg-indigo-50 rounded-lg mb-4 text-gray-800" id="partner2ResponseText"></div>
+                    <button 
+                        id="partner2Approve"
+                        class="bg-green-600 text-white py-2 px-6 rounded-md hover:bg-green-700 transition-colors"
+                    >
+                        Approve & Send to Therapist
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Therapist Response -->
+        <div id="therapistResponse" class="bg-white p-6 rounded-xl shadow-lg mb-8 hidden">
+            <h2 class="text-xl font-semibold mb-4 text-indigo-800">Therapist Response</h2>
+            <div class="p-5 bg-yellow-50 rounded-lg text-gray-800" id="therapistResponseText"></div>
+        </div>
+
+        <!-- Debug Panel -->
+        <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-indigo-800">Debug Panel</h2>
+                <button 
+                    id="toggleDebug"
+                    class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                >
+                    Show Debug Info
+                </button>
+            </div>
+            <div id="debugPanel" class="debug-panel hidden"></div>
+        </div>
+
+        <div>
+            <h2>API Status</h2>
+            <button onclick="checkStatus()">Check Status</button>
+            <div id="statusResult" class="result">Status will appear here...</div>
+        </div>
+
+        <div>
+            <h2>Send Message (Partner 1)</h2>
+            <input type="text" id="messageInput" value="Hello">
+            <button onclick="sendMessage()">Send</button>
+            <div id="messageResult" class="result">Response will appear here...</div>
+        </div>
+
+        <div>
+            <h2>Approve Message (Partner 1)</h2>
+            <input type="text" id="approveInput" value="Test message">
+            <button onclick="approveMessage()">Approve</button>
+            <div id="approveResult" class="result">Response will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        let debugVisible = false;
+        const debugPanel = document.getElementById('debugPanel');
+        
+        function logDebug(message, data = null) {
+            const timestamp = new Date().toISOString();
+            let logMessage = `[${timestamp}] ${message}`;
+            
+            if (data) {
+                logMessage += '\n' + JSON.stringify(data, null, 2);
+            }
+            
+            debugPanel.textContent += logMessage + '\n\n';
+            console.log(message, data);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle debug panel
+            document.getElementById('toggleDebug').addEventListener('click', function() {
+                debugVisible = !debugVisible;
+                debugPanel.classList.toggle('hidden', !debugVisible);
+                this.textContent = debugVisible ? 'Hide Debug Info' : 'Show Debug Info';
+            });
+            
+            // Check API status
+            logDebug('Checking API status...');
+            checkApiStatus();
+
+            // Partner 1 submit
+            document.getElementById('partner1Submit').addEventListener('click', function() {
+                const message = document.getElementById('partner1Message').value;
+                if (!message.trim()) return;
+                
+                document.getElementById('partner1Error').classList.add('hidden');
+                logDebug('Submitting message for Partner 1', { message });
+                submitPartnerMessage(1, message);
+            });
+
+            // Partner 2 submit
+            document.getElementById('partner2Submit').addEventListener('click', function() {
+                const message = document.getElementById('partner2Message').value;
+                if (!message.trim()) return;
+                
+                document.getElementById('partner2Error').classList.add('hidden');
+                logDebug('Submitting message for Partner 2', { message });
+                submitPartnerMessage(2, message);
+            });
+
+            // Partner 1 approve
+            document.getElementById('partner1Approve').addEventListener('click', function() {
+                const responseText = document.getElementById('partner1ResponseText').textContent;
+                logDebug('Approving message for Partner 1', { message: responseText });
+                approveMessage(1, responseText);
+            });
+
+            // Partner 2 approve
+            document.getElementById('partner2Approve').addEventListener('click', function() {
+                const responseText = document.getElementById('partner2ResponseText').textContent;
+                logDebug('Approving message for Partner 2', { message: responseText });
+                approveMessage(2, responseText);
+            });
+        });
+
+        async function checkApiStatus() {
+            const statusElement = document.getElementById('apiStatus');
+            
+            try {
+                logDebug('Fetching API status from http://127.0.0.1:8000/test');
+                const response = await fetch('http://127.0.0.1:8000/test');
+                const data = await response.json();
+                
+                logDebug('API status response', data);
+                
+                if (data.status === "API is working correctly") {
+                    statusElement.textContent = 'API Connected';
+                    statusElement.className = 'px-3 py-1 rounded-full text-sm bg-green-100 text-green-800';
+                } else {
+                    statusElement.textContent = 'Error connecting to API';
+                    statusElement.className = 'px-3 py-1 rounded-full text-sm bg-red-100 text-red-800';
+                }
+            } catch (error) {
+                logDebug('API status error', { error: error.message });
+                statusElement.textContent = 'API not available';
+                statusElement.className = 'px-3 py-1 rounded-full text-sm bg-red-100 text-red-800';
+            }
+        }
+
+        async function submitPartnerMessage(partnerId, message) {
+            const errorElement = document.getElementById(`partner${partnerId}Error`);
+            
+            try {
+                logDebug(`Sending message to http://127.0.0.1:8000/partner/${partnerId}/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: { message }
+                });
+                
+                const response = await fetch(`http://127.0.0.1:8000/partner/${partnerId}/message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Server responded with ${response.status}: ${JSON.stringify(errorData)}`);
+                }
+                
+                const data = await response.json();
+                logDebug(`Response for Partner ${partnerId}`, data);
+                
+                // Show response
+                const responseElement = document.getElementById(`partner${partnerId}Response`);
+                const responseTextElement = document.getElementById(`partner${partnerId}ResponseText`);
+                
+                responseElement.classList.remove('hidden');
+                responseTextElement.textContent = data.response;
+                
+            } catch (error) {
+                logDebug(`Error for Partner ${partnerId}`, { error: error.message });
+                errorElement.textContent = `Error: ${error.message}`;
+                errorElement.classList.remove('hidden');
+            }
+        }
+
+        async function approveMessage(partnerId, message) {
+            try {
+                logDebug(`Approving message for Partner ${partnerId}`, {
+                    url: `http://127.0.0.1:8000/partner/${partnerId}/approve`,
+                    method: 'POST',
+                    body: { message }
+                });
+                
+                const response = await fetch(`http://127.0.0.1:8000/partner/${partnerId}/approve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Server responded with ${response.status}: ${JSON.stringify(errorData)}`);
+                }
+                
+                const data = await response.json();
+                logDebug('Therapist response', data);
+                
+                // Show therapist response
+                const therapistResponseElement = document.getElementById('therapistResponse');
+                const therapistResponseTextElement = document.getElementById('therapistResponseText');
+                
+                therapistResponseElement.classList.remove('hidden');
+                therapistResponseTextElement.textContent = data.response;
+                
+            } catch (error) {
+                logDebug('Therapist response error', { error: error.message });
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        const API_URL = 'http://127.0.0.1:8000';
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_URL}/test`);
+                const data = await response.json();
+                document.getElementById('statusResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('statusResult').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function sendMessage() {
+            try {
+                const message = document.getElementById('messageInput').value;
+                const response = await fetch(`${API_URL}/partner/1/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                document.getElementById('messageResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('messageResult').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function approveMessage() {
+            try {
+                const message = document.getElementById('approveInput').value;
+                const response = await fetch(`${API_URL}/partner/1/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await response.json();
+                document.getElementById('approveResult').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('approveResult').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 

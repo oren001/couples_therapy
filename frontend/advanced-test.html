@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couples Therapy LLM - Advanced Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #e0f2fe, #e0e7ff);
+            min-height: 100vh;
+        }
+        .message-bubble {
+            padding: 12px;
+            border-radius: 12px;
+            margin: 8px 0;
+            max-width: 80%;
+            position: relative;
+        }
+        .partner1-message {
+            background-color: #dbeafe;
+            margin-right: auto;
+        }
+        .partner2-message {
+            background-color: #dcfce7;
+            margin-left: auto;
+        }
+        .therapist-message {
+            background-color: #fef3c7;
+            margin: 16px auto;
+            max-width: 90%;
+        }
+        .message-header {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .conversation-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .typing-indicator {
+            padding: 8px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            display: none;
+        }
+        .typing-indicator.visible {
+            display: block;
+        }
+        .debug-panel {
+            font-family: monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 16px;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-900">Couples Therapy Assistant</h1>
+            <p class="text-gray-600 mt-2">Advanced Interface with OpenAI Integration</p>
+            <div class="mt-4">
+                <span id="apiStatus" class="px-4 py-2 rounded-full text-sm bg-yellow-100 text-yellow-800">
+                    Checking API connection...
+                </span>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-3 gap-8">
+            <!-- Partner 1 Panel -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-blue-800 mb-4">Partner 1</h2>
+                <div class="mb-4">
+                    <textarea 
+                        id="partner1Input"
+                        class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        rows="4"
+                        placeholder="Express your thoughts and feelings..."
+                    ></textarea>
+                </div>
+                <button 
+                    id="partner1Submit"
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Get Suggestions
+                </button>
+                <div id="partner1Response" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <h3 class="font-semibold mb-2">Suggested Improvement:</h3>
+                    <p id="partner1ResponseText" class="text-gray-700"></p>
+                    <button 
+                        id="partner1Approve"
+                        class="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        Approve & Send to Therapist
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conversation History -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-indigo-800 mb-4">Conversation</h2>
+                <div id="conversationContainer" class="conversation-container">
+                    <!-- Messages will be added here -->
+                </div>
+                <div id="typingIndicator" class="typing-indicator mt-4">
+                    <span class="text-gray-600">Thinking...</span>
+                </div>
+            </div>
+
+            <!-- Partner 2 Panel -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-green-800 mb-4">Partner 2</h2>
+                <div class="mb-4">
+                    <textarea 
+                        id="partner2Input"
+                        class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        rows="4"
+                        placeholder="Express your thoughts and feelings..."
+                    ></textarea>
+                </div>
+                <button 
+                    id="partner2Submit"
+                    class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                    Get Suggestions
+                </button>
+                <div id="partner2Response" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <h3 class="font-semibold mb-2">Suggested Improvement:</h3>
+                    <p id="partner2ResponseText" class="text-gray-700"></p>
+                    <button 
+                        id="partner2Approve"
+                        class="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        Approve & Send to Therapist
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Panel -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-indigo-800">Debug Panel</h2>
+                <button 
+                    id="toggleDebug"
+                    class="text-indigo-600 hover:text-indigo-800"
+                >
+                    Show Debug Info
+                </button>
+            </div>
+            <div id="debugPanel" class="debug-panel hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        let debugVisible = false;
+
+        // DOM Elements
+        const apiStatus = document.getElementById('apiStatus');
+        const debugPanel = document.getElementById('debugPanel');
+        const conversationContainer = document.getElementById('conversationContainer');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // Debug logging
+        function logDebug(message, data = null) {
+            const timestamp = new Date().toISOString();
+            let logMessage = `[${timestamp}] ${message}`;
+            
+            if (data) {
+                logMessage += '\n' + JSON.stringify(data, null, 2);
+            }
+            
+            debugPanel.innerHTML += logMessage + '\n\n';
+            debugPanel.scrollTop = debugPanel.scrollHeight;
+            console.log(message, data);
+        }
+
+        // Show/hide typing indicator
+        function setTyping(isTyping) {
+            typingIndicator.classList.toggle('visible', isTyping);
+        }
+
+        // Add message to conversation
+        function addMessage(type, content, partnerId = null) {
+            const messageDiv = document.createElement('div');
+            const header = document.createElement('div');
+            const body = document.createElement('div');
+
+            messageDiv.className = `message-bubble ${type}-message`;
+            header.className = 'message-header';
+            
+            switch(type) {
+                case 'partner1':
+                    header.textContent = 'Partner 1';
+                    break;
+                case 'partner2':
+                    header.textContent = 'Partner 2';
+                    break;
+                case 'therapist':
+                    header.textContent = 'Therapist';
+                    break;
+            }
+
+            body.textContent = content;
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(body);
+            conversationContainer.appendChild(messageDiv);
+            conversationContainer.scrollTop = conversationContainer.scrollHeight;
+        }
+
+        // API Calls
+        async function checkApiStatus() {
+            logDebug('Checking API status...');
+            
+            try {
+                const response = await fetch(`${API_URL}/test`);
+                const data = await response.json();
+                
+                logDebug('API status response', data);
+                
+                if (data.status === 'API is working correctly') {
+                    apiStatus.textContent = 'API Connected';
+                    apiStatus.className = 'px-4 py-2 rounded-full text-sm bg-green-100 text-green-800';
+                    return true;
+                }
+            } catch (error) {
+                logDebug('API connection error', error);
+                apiStatus.textContent = 'API Connection Failed';
+                apiStatus.className = 'px-4 py-2 rounded-full text-sm bg-red-100 text-red-800';
+                return false;
+            }
+        }
+
+        async function submitMessage(partnerId, message) {
+            setTyping(true);
+            logDebug(`Submitting message for Partner ${partnerId}`, { message });
+            
+            try {
+                const response = await fetch(`${API_URL}/partner/${partnerId}/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                logDebug(`Response for Partner ${partnerId}`, data);
+                
+                // Add messages to conversation
+                addMessage(`partner${partnerId}`, message);
+                
+                // Show response in panel
+                const responseDiv = document.getElementById(`partner${partnerId}Response`);
+                const responseText = document.getElementById(`partner${partnerId}ResponseText`);
+                responseDiv.classList.remove('hidden');
+                responseText.textContent = data.response;
+                
+                return data.response;
+            } catch (error) {
+                logDebug(`Error submitting message`, error);
+                throw error;
+            } finally {
+                setTyping(false);
+            }
+        }
+
+        async function approveMessage(partnerId, message) {
+            setTyping(true);
+            logDebug(`Approving message for Partner ${partnerId}`, { message });
+            
+            try {
+                const response = await fetch(`${API_URL}/partner/${partnerId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                logDebug('Therapist response', data);
+                
+                // Add therapist response to conversation
+                addMessage('therapist', data.response);
+                
+                // Clear input and response
+                document.getElementById(`partner${partnerId}Input`).value = '';
+                document.getElementById(`partner${partnerId}Response`).classList.add('hidden');
+                
+                return data.response;
+            } catch (error) {
+                logDebug(`Error approving message`, error);
+                throw error;
+            } finally {
+                setTyping(false);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('toggleDebug').addEventListener('click', () => {
+            debugVisible = !debugVisible;
+            debugPanel.classList.toggle('hidden', !debugVisible);
+            document.getElementById('toggleDebug').textContent = 
+                debugVisible ? 'Hide Debug Info' : 'Show Debug Info';
+        });
+
+        ['1', '2'].forEach(partnerId => {
+            // Submit button
+            document.getElementById(`partner${partnerId}Submit`).addEventListener('click', async () => {
+                const input = document.getElementById(`partner${partnerId}Input`);
+                const message = input.value.trim();
+                if (!message) return;
+                
+                try {
+                    await submitMessage(partnerId, message);
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            });
+
+            // Approve button
+            document.getElementById(`partner${partnerId}Approve`).addEventListener('click', async () => {
+                const responseText = document.getElementById(`partner${partnerId}ResponseText`).textContent;
+                if (!responseText) return;
+                
+                try {
+                    await approveMessage(partnerId, responseText);
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            });
+        });
+
+        // Initialize
+        async function initialize() {
+            await checkApiStatus();
+            
+            // Load conversation history
+            try {
+                const response = await fetch(`${API_URL}/conversation/history`);
+                const data = await response.json();
+                
+                // Add existing messages to conversation
+                if (data.partner1) {
+                    data.partner1.forEach(msg => {
+                        if (msg.role === 'user') {
+                            addMessage('partner1', msg.content);
+                        }
+                    });
+                }
+                if (data.partner2) {
+                    data.partner2.forEach(msg => {
+                        if (msg.role === 'user') {
+                            addMessage('partner2', msg.content);
+                        }
+                    });
+                }
+                if (data.therapist) {
+                    data.therapist.forEach(msg => {
+                        if (msg.role === 'assistant') {
+                            addMessage('therapist', msg.content);
+                        }
+                    });
+                }
+            } catch (error) {
+                logDebug('Error loading conversation history', error);
+            }
+        }
+
+        // Start initialization
+        initialize();
+    </script>
+</body>
+</html> 
